@@ -1,0 +1,89 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MIWS 7-Day TV Forecast</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    margin: 0;
+    background: #002244;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  canvas {
+    border: 5px solid #002244;
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
+  }
+</style>
+</head>
+<body>
+<canvas id="forecastCanvas" width="1600" height="700"></canvas>
+
+<script>
+const logoImg = new Image();
+logoImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAr0lEQVR42q2Vyw3CMBBF/4vl9GVyEkUTpA4S9AQ6KFYEq2E1UBQXcBFaA2YO8Z/MNjdX4XcwME3ADkn1YAHMwlo8DtsYCCZfl+iH5lBWa1gEuSnzvwDqwlZ4BfFlArttlyxRlaM5IBflUoGaTmiG1bUbzpjifDOZAKGLm6+x8mOUZ6i8wTLn7k5b9k4leZ4jA8ksu3jShG7BprlnSxR/GkXMdDIZlRmyEF2MwAAAABJRU5ErkJggg==';
+
+async function loadForecast() {
+  const response = await fetch("/.netlify/functions/forecast-proxy");
+  const data = await response.json();
+  const periods = data.properties.periods;
+  const days = [];
+
+  for (let i = 0; i < periods.length; i += 2) {
+    if (days.length >= 7) break;
+    const day = periods[i];
+    const night = periods[i + 1] || { temperature: '--' };
+    days.push({
+      name: day.name,
+      shortForecast: day.shortForecast,
+      high: day.temperature,
+      low: night.temperature,
+      pop: (day.probabilityOfPrecipitation?.value || 0)
+    });
+  }
+  drawForecast(days);
+}
+
+function drawForecast(days) {
+  const canvas = document.getElementById("forecastCanvas");
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#004488";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#002244";
+  ctx.fillRect(0, 0, canvas.width, 120);
+
+  ctx.drawImage(logoImg, 50, 10, 200, 100);
+
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "bold 50px Arial";
+  ctx.fillText("7-DAY FORECAST", 300, 80);
+
+  for (let i = 0; i < days.length; i++) {
+    const x = 60 + i * 220;
+    const y = 150;
+    ctx.fillStyle = "#F9F9F9";
+    ctx.fillRect(x, y, 200, 500);
+    ctx.fillStyle = "#002244";
+    ctx.font = "bold 30px Arial";
+    ctx.fillText(days[i].name.substring(0,3).toUpperCase(), x + 50, y + 50);
+    ctx.font = "bold 25px Arial";
+    if (days[i].pop > 0) ctx.fillText(`${days[i].pop}%`, x + 70, y + 90);
+    ctx.font = "bold 45px Arial";
+    ctx.fillText(`${days[i].high}°`, x + 50, y + 350);
+    ctx.font = "bold 35px Arial";
+    ctx.fillText(`${days[i].low}°`, x + 70, y + 400);
+  }
+}
+
+loadForecast();
+setInterval(loadForecast, 5 * 60 * 1000);
+</script>
+</body>
+</html>
